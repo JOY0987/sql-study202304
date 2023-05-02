@@ -1,18 +1,4 @@
 
-SELECT 
-	EMP_NO,
-	EMP_NM,
-	DEPT_CD
-FROM TB_EMP
-;
-SELECT 
-	DEPT_CD,
-	DEPT_NM 
-FROM TB_DEPT
-;
-
-
-
 
 -- 사원들의 사번, 이름, 주소, 부서명
 SELECT 
@@ -46,29 +32,14 @@ COMMIT;
 SELECT * FROM test_a;
 SELECT * FROM test_b;
 
--- CROSS JOIN, 카테시안 곱 (cartesian product)
+-- CROSS JOIN, 카테시안 곱(cartesian product) - 모든 경우의 수를 다 곱하는 경우
 SELECT 
     *
 FROM test_a, test_b
 ;
 
-SELECT 
-    *
-FROM test_a, test_b
-WHERE test_a.id = test_b.a_id
-;
-
-
-SELECT 
-	E.EMP_NO,
-	E.EMP_NM,
-	E.DEPT_CD,
-	D.DEPT_CD,
-	D.dept_nm
-FROM tb_emp E, tb_dept D
-WHERE E.DEPT_CD = D.DEPT_CD 
-;
-
+SELECT *
+FROM tb_emp, tb_dept;
 
 -- INNER JOIN (EQUI JOIN의 한 종류)
 SELECT 
@@ -91,19 +62,25 @@ WHERE A.id = B.a_id
 
 
 -- 자격증 관련 테이블
-SELECT * FROM tb_emp;
-SELECT * FROM tb_emp_certi;
-SELECT * FROM tb_certi;
+SELECT * FROM tb_emp; -- 사원
+SELECT * FROM tb_emp_certi; -- 각 사원의 자격증
+SELECT * FROM tb_certi; -- 자격증
 
+-- [사원]--<[사원자격증]>--[자격증]
+-- M 			: 			M
+-- 1 	: 		M
+-- 				M 		: 	1
+-- 사원자격증은, 사원과 자격증 사이를 연결해주는 테이블이다.
+-- 실무에서도 이렇게 1 : M 사이를 연결해주는 테이블을 만들어주어야 한다.
 
 -- 사원의 사원번호와 취득 자격증명을 조회하고 싶음
 SELECT
     A.emp_no, 
-    B.certi_nm
-    -- A.CERTI_CD,
-    -- B.CERTI_CD 
+    B.certi_nm,
+    A.CERTI_CD,
+    B.CERTI_CD
 FROM tb_emp_certi A, tb_certi B
-WHERE A.certi_cd = B.certi_cd
+WHERE A.certi_cd = B.certi_cd -- 필터 조건
 ORDER BY A.emp_no, B.certi_cd
 ;
 
@@ -112,7 +89,7 @@ SELECT
     A.emp_no, C.emp_nm, B.certi_nm
 FROM tb_emp_certi A, tb_certi B, tb_emp C
 WHERE A.certi_cd = B.certi_cd
-    AND A.emp_no = C.emp_no
+    AND A.emp_no = C.emp_no -- 필터 조건 추가
 ORDER BY A.emp_no, B.certi_cd
 ;
 
@@ -122,7 +99,7 @@ SELECT
 FROM tb_emp_certi A, tb_certi B, tb_emp C, tb_dept D
 WHERE A.certi_cd = B.certi_cd
     AND A.emp_no = C.emp_no
-    AND C.dept_cd = D.dept_cd
+    AND C.dept_cd = D.dept_cd -- 필터 조건 추가
 ORDER BY A.emp_no, B.certi_cd
 ;
 
@@ -162,15 +139,12 @@ ORDER BY A.emp_no
 -- 5. ON절을 이용하면 JOIN 이후의 논리연산이나 서브쿼리와 같은 추가 서술이 가능
 SELECT 
     A.emp_no, A.emp_nm, A.addr, A.dept_cd, B.dept_nm
-FROM tb_emp A 
-INNER JOIN tb_dept B
-ON A.dept_cd = B.dept_cd
+FROM tb_emp A JOIN TB_DEPT B
+ON A.dept_cd = B.dept_cd -- JOIN 조건과 일반 조건을 분리할 수 있다.
 WHERE A.addr LIKE '%용인%'
     AND A.emp_nm LIKE '김%'
 ORDER BY A.emp_no
 ;
-
-
 
 -- 1980년대생 사원들의 사번, 사원명, 부서명, 자격증명, 취득일자를 조회
 SELECT
@@ -183,15 +157,13 @@ WHERE E.dept_cd = D.dept_cd
     AND EC.certi_cd = C.certi_cd
     AND E.emp_no = EC.emp_no
     AND E.birth_de BETWEEN '19800101' AND '19891231'
-;
+; -- 일반조건과 조인조건이 구분되지 않아 가독성이 떨어진다.
 
+-- 위를 표준 조인으로 변경한 버전 (가독성 굿)
 SELECT
-    E.emp_no, E.emp_nm, E.birth_de,
-    D.dept_nm,
-    C.certi_nm, 
-    EC.acqu_de
+    E.emp_no, E.emp_nm, E.birth_de, D.dept_nm, C.certi_nm, EC.acqu_de
 FROM tb_emp E 
-JOIN tb_dept D 
+JOIN tb_dept D -- INNER 생략
 ON E.dept_cd = D.dept_cd
 JOIN tb_emp_certi EC 
 ON E.emp_no = EC.emp_no
@@ -216,7 +188,7 @@ WHERE E.birth_de BETWEEN '19800101' AND '19891231'
 SELECT 
     *
 FROM test_a A, test_B b
-;
+; -- ,(콤마)로 JOIN하는 건 오라클 사투리
 
 SELECT 
     *
@@ -233,6 +205,9 @@ CROSS JOIN test_B b
 -- 4. SELECT * 문법을 사용하면, 공통 컬럼은 집합에서 한번만 표기됩니다.
 -- 5. 공통 컬럼이 n개 이상이면 조인 조건이 n개로 처리됩니다.
 
+-- 주의할 점
+-- 두 테이블의 PK, FK 이름이 동일해야함.
+
 -- 사원 테이블과 부서 테이블을 조인 (사번, 사원명, 부서코드, 부서명)
 SELECT 
     A.emp_no, A.emp_nm, B.dept_cd, B.dept_nm
@@ -240,13 +215,14 @@ FROM tb_emp A
 INNER JOIN tb_dept B
 ON A.dept_cd = B.dept_cd
 ;
-
+-- 두개 이상의 조인 시 inner, natural 의 결과가 달라질 수 있다.
 
 SELECT 
     A.emp_no, A.emp_nm, dept_cd, B.dept_nm
 FROM tb_emp A
 NATURAL JOIN tb_dept B
-;
+; 
+-- dept.cd 앞에 테이블명을 붙이면 오류남!!
 
 -- # USING절 조인
 -- 1. NATURAL조인에서는 자동으로 이름과 타입이 일치하는 모든 컬럼에 대해
@@ -274,3 +250,8 @@ SELECT
 FROM tb_emp A
 NATURAL JOIN tb_dept B
 ;
+
+SELECT 
+    *
+FROM tb_emp A
+INNER JOIN 
